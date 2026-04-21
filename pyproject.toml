@@ -1,0 +1,9 @@
+[project]
+name = "halo-effect"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12.13"
+dependencies = [
+    "pandas[excel,performance]>=3.0.2",
+]
