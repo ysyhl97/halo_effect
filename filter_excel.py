@@ -25,19 +25,27 @@ logger.addHandler(console_handle)
 logger.addHandler(file_handle)
 
 
-def load_folder(folder: str) -> list:
+def load_folder(folder: str = r"./source") -> list:
     """加载目录"""
 
     file_folder = Path(folder)
 
     if not file_folder.exists():
-        logger.error(f"加载路径失败：{file_folder}")
+        logger.error(f"路径不存在,请进行检查：{file_folder}")
         return None
-
+    logger.info(f"加载路径目录：{folder}")
     exist_suffix = [".xlsx", ".xls"]
 
-    file_path = [file for file in file_folder.rglob("*") if file.suffix in exist_suffix]
-    return file_path
+    excel_files = [
+        file for file in file_folder.rglob("*") if file.suffix in exist_suffix
+    ]
+    if not excel_files:
+        logger.warning(f"{file_folder}中没有找到excel文件")
+        return
+
+    logger.info(f"共找到{len(excel_files)}个excel文件,准备处理....")
+
+    return excel_files
 
 
 def get_keywords(keywords_path: str) -> str:
@@ -51,18 +59,25 @@ def get_keywords(keywords_path: str) -> str:
 
 def search_excel(source_path: str, keywords: str):
     "使用关键字，对直接的列进行筛选"
-    logger.info(f"准备处理：{source_path.name}")
+    logger.info(f">>> 正在处理：{source_path.name}")
     dfs = pd.read_excel(source_path, engine="calamine", sheet_name=None)
     result_list = []
     for sheet_name, df in dfs.items():
-        logger.info(f"sheet_name={sheet_name}")
+        logger.info(f"  -> 正在读取工作表：{sheet_name}")
 
         title = df["标题"].astype(str).str.contains(keywords, na=False)
         content = df["摘要"].astype(str).str.contains(keywords, na=False)
 
         final_list = [title, content]
         final_serserl = functools.reduce(operator.or_, final_list)
-        result_list.append(df[final_serserl])
+        match_df = df[final_serserl]
+
+        if not match_df.empty:
+            logger.info(f"      - 工作表{sheet_name}中匹配{len(match_df)}行")
+
+        else:
+            logger.info(f"      - 工作表{sheet_name}没有匹配到")
+        result_list.append(match_df)
     final_result = pd.concat(result_list, ignore_index=True)
     return final_result
 
@@ -86,12 +101,16 @@ def main():
     all_matches_list = []
     start_time = time.time()
     # 1.加载所有文件夹中的所有文件excel路径
-    file_path = r""
-    source_path = load_folder(file_path=r"./source")
-    logger.info(f"source_path={source_path}")
+    logger.info("---系统启动---")
+    file_path = (
+        r"C:\Users\Administrator\Desktop\青岛负面2024-2026.4.21\青岛负面2024-2026.4.21"
+    )
+
+    source_path = load_folder(file_path)
+
     # 2.处理关键字
     keywords = get_keywords("./keywords.txt")
-    logger.info("正在加载关键字中.....")
+    logger.info("加载关键字中.....")
     # 3. 循环输入excel,进行筛选.
 
     for file_path in source_path:
@@ -100,7 +119,9 @@ def main():
     all_final_df = pd.concat(all_matches_list, ignore_index=True)
     # 4.将结果进行保存
     save_excel(df=all_final_df)
-    logger.info(f"总耗时： {time.time() - start_time}秒")
+
+    logger.info(f"总耗时： {time.time() - start_time:.2f}秒")
+    logger.info("---系统关闭---")
 
 
 if __name__ == "__main__":
