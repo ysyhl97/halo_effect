@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 
 import pandas as pd
+from openpyxl import load_workbook
 from pandas import DataFrame
 
 logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ console_handle.setFormatter(
     logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 )
 
-file_handle = logging.FileHandler(filename="app1.log", mode="a", encoding="utf-8")
+file_handle = logging.FileHandler(filename="./log/app.log", mode="a", encoding="utf-8")
 file_handle.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
 file_handle.setLevel(logging.DEBUG)
 
@@ -67,15 +68,26 @@ def search_excel(source_path: str, keywords: str):
 
 
 def save_excel(df: DataFrame) -> None:
-    df.to_excel("test.xlsx", index=False)
+    # 加载模板
+    wb = load_workbook("./template/template.xlsx")
+    ws = wb.active
+
+    start_row = 2
+    for index, row in df.iterrows():
+        current_row = start_row + index
+
+        for col_idx, value in enumerate(row, start=1):
+            ws.cell(row=current_row, column=col_idx, value=value)
+
+    wb.save("./结果.xlsx")
 
 
 def main():
     all_matches_list = []
     start_time = time.time()
     # 1.加载所有文件夹中的所有文件excel路径
-    file_path = r"./source"
-    source_path = load_folder(file_path)
+    file_path = r""
+    source_path = load_folder(file_path=r"./source")
     logger.info(f"source_path={source_path}")
     # 2.处理关键字
     keywords = get_keywords("./keywords.txt")
@@ -84,10 +96,11 @@ def main():
 
     for file_path in source_path:
         all_matches_list.append(search_excel(file_path, keywords))
+
     all_final_df = pd.concat(all_matches_list, ignore_index=True)
     # 4.将结果进行保存
     save_excel(df=all_final_df)
-    logger.info(f"耗时： {time.time() - start_time}秒")
+    logger.info(f"总耗时： {time.time() - start_time}秒")
 
 
 if __name__ == "__main__":
