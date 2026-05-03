@@ -1,4 +1,5 @@
 import functools
+import json
 import logging
 import operator
 import time
@@ -33,7 +34,7 @@ def load_folder(folder: str = r"./source") -> list:
     if not file_folder.exists():
         logger.error(f"路径不存在,请进行检查：{file_folder}")
         return None
-    logger.info(f"加载路径目录：{folder}")
+    logger.info(f"正在加载路径目录：{folder}")
     exist_suffix = [".xlsx", ".xls"]
 
     excel_files = [
@@ -48,6 +49,12 @@ def load_folder(folder: str = r"./source") -> list:
     return excel_files
 
 
+def init_config() -> dict:
+    """初始化config"""
+    with open("./config/config.json", "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
 def get_keywords(keywords_path: str) -> str:
     """加载关键字，并进行转换"""
     content = ""
@@ -57,18 +64,19 @@ def get_keywords(keywords_path: str) -> str:
     return "|".join(content.strip().split())
 
 
-def search_excel(source_path: str, keywords: str):
+def search_excel(source_path: str, keywords: str, filter_columns: list):
     "使用关键字，对直接的列进行筛选"
     logger.info(f">>> 正在处理：{source_path.name}")
     dfs = pd.read_excel(source_path, engine="calamine", sheet_name=None)
     result_list = []
+
     for sheet_name, df in dfs.items():
         logger.info(f"  -> 正在读取工作表：{sheet_name}")
+        final_list = []
+        for coulumn in filter_columns:
+            result = df[coulumn].astype(str).str.contains(keywords, na=False)
+            final_list.append(result)
 
-        title = df["标题"].astype(str).str.contains(keywords, na=False)
-        content = df["摘要"].astype(str).str.contains(keywords, na=False)
-
-        final_list = [title, content]
         final_serserl = functools.reduce(operator.or_, final_list)
         match_df = df[final_serserl]
 
@@ -102,11 +110,15 @@ def main():
     start_time = time.time()
     # 1.加载所有文件夹中的所有文件excel路径
     logger.info("---系统启动---")
-    file_path = (
-        r"C:\Users\Administrator\Desktop\青岛负面2024-2026.4.21\青岛负面2024-2026.4.21"
-    )
 
-    source_path = load_folder(file_path)
+    logger.info("初始化配置中....")
+    config = init_config()
+    FILE_PATH = config.get("file_path")
+    FILTER_COLUMNS = config.get("filter_columns")
+    logger.info(f"处理目录：{FILE_PATH}")
+    logger.info(f"处理列: {FILTER_COLUMNS}")
+
+    source_path = load_folder(FILE_PATH)
 
     # 2.处理关键字
     keywords = get_keywords("./keywords.txt")
@@ -114,7 +126,7 @@ def main():
     # 3. 循环输入excel,进行筛选.
 
     for file_path in source_path:
-        all_matches_list.append(search_excel(file_path, keywords))
+        all_matches_list.append(search_excel(file_path, keywords, FILTER_COLUMNS))
 
     all_final_df = pd.concat(all_matches_list, ignore_index=True)
     # 4.将结果进行保存
