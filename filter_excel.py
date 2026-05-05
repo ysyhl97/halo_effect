@@ -105,7 +105,7 @@ def save_excel(df: DataFrame) -> None:
     wb.save("./结果.xlsx")
 
 
-def main():
+def search_or_keywords():
     all_matches_list = []
     start_time = time.time()
     # 1.加载所有文件夹中的所有文件excel路径
