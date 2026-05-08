@@ -1,5 +1,13 @@
+import logging.config
+
+import yaml
+
 from filter_excel import search_add_keywords, search_only
 from task import search_task
+
+with open("./config/logging_config.yaml", "r", encoding="utf-8") as f:
+    config_dict = yaml.safe_load(f)
+logging.config.dictConfig(config_dict)
 
 
 def main():
@@ -13,10 +21,10 @@ def main():
 
         match number:
             case "1":
-                print("筛选功能")
+                print("开始执行筛选功能")
                 search_task(search_only)
             case "2":
-                print("筛选功能(添加关键字)")
+                print("开始执行筛选功能(添加关键字)")
                 search_task(search_add_keywords)
             case "3":
                 print("功能3")
