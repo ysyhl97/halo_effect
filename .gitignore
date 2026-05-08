@@ -9,6 +9,7 @@ wheels/
 # Virtual environments
 .venv
 
+output/
 
 source/
 log/

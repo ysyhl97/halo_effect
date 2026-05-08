@@ -144,7 +144,7 @@ def save_excel(df: DataFrame) -> None:
         for col_idx, value in enumerate(row, start=1):
             ws.cell(row=current_row, column=col_idx, value=value)
 
-    wb.save("./结果.xlsx")
+    wb.save("./output/结果.xlsx")
 
 
 def search_or_keywords():
