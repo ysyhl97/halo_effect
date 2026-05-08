@@ -1,10 +1,11 @@
-from task import search_keywords
+from filter_excel import search_add_keywords, search_only
+from task import search_task
 
 
 def main():
     while True:
         print("====功能选择====")
-        print("1.筛选（关键字或）")
+        print("1.筛选")
         print("2.筛选（加关键字）")
         print("9.退出系统：exit/quit")
 
@@ -12,10 +13,11 @@ def main():
 
         match number:
             case "1":
-                print("功能1")
-                search_keywords()
+                print("筛选功能")
+                search_task(search_only)
             case "2":
-                print("功能2")
+                print("筛选功能(添加关键字)")
+                search_task(search_add_keywords)
             case "3":
                 print("功能3")
             case "exit" | "quit":

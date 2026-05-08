@@ -37,16 +37,22 @@ def load_folder(folder: str = r"./source") -> list:
     logger.info(f"正在加载路径目录：{folder}")
     exist_suffix = [".xlsx", ".xls"]
 
-    excel_files = [
+    excel_files_path = [
         file for file in file_folder.rglob("*") if file.suffix in exist_suffix
     ]
-    if not excel_files:
+    if not excel_files_path:
         logger.warning(f"{file_folder}中没有找到excel文件")
         return
 
-    logger.info(f"共找到{len(excel_files)}个excel文件,准备处理....")
+    logger.info(f"共找到{len(excel_files_path)}个excel文件,准备处理....")
 
-    return excel_files
+    return excel_files_path
+
+
+def load_all_sheet(file_path: str) -> DataFrame:
+    """加载所有sheet"""
+    dfs = pd.read_excel(file_path, engine="calamine", sheet_name=None)
+    return dfs
 
 
 def init_config() -> dict:
@@ -64,7 +70,7 @@ def get_keywords(keywords_path: str) -> str:
     return "|".join(content.strip().split())
 
 
-def search_excel(source_path: str, keywords: str, filter_columns: list):
+def search_excel(source_path: str, keywords: str, filter_columns: list) -> DataFrame:
     "使用关键字，对直接的列进行筛选"
     logger.info(f">>> 正在处理：{source_path.name}")
     dfs = pd.read_excel(source_path, engine="calamine", sheet_name=None)
@@ -88,6 +94,42 @@ def search_excel(source_path: str, keywords: str, filter_columns: list):
         result_list.append(match_df)
     final_result = pd.concat(result_list, ignore_index=True)
     return final_result
+
+
+def search_only(df: DataFrame, keywords: str, filter_columns: list) -> DataFrame:
+    """查询关键字"""
+    mask_list = []
+    for column in filter_columns:
+        if column in df.columns:
+            result = df[column].astype(str).str.contains(keywords, na=False, case=False)
+            mask_list.append(result)
+    final_mask = functools.reduce(operator.or_, mask_list)
+    return df[final_mask]
+
+
+def search_add_keywords(
+    df: DataFrame, keywords: str, filter_columns: list
+) -> DataFrame:
+    """查询关键字，并且添加匹配到的关键字"""
+    match_df = search_only(df, keywords, filter_columns)
+
+    if match_df.empty:
+        return match_df
+
+    all_match_list = pd.Series([[] for _ in range(len(match_df))], index=match_df.index)
+
+    for column in filter_columns:
+        if column in match_df.columns:
+            all_match_list += match_df[column].fillna("").str.findall(keywords)
+
+    def format_keywords(keyword_list: list) -> str:
+        """格式化关键字列"""
+        unique_keywords = {k.lower() for k in keyword_list}
+
+        return " ".join(sorted(list(unique_keywords)))
+
+    match_df["关键字"] = all_match_list.apply(format_keywords)
+    return match_df
 
 
 def save_excel(df: DataFrame) -> None:
@@ -127,6 +169,9 @@ def search_or_keywords():
 
     for file_path in source_path:
         all_matches_list.append(search_excel(file_path, keywords, FILTER_COLUMNS))
+        # all_matches_list.append(
+        #     search_excel_add_keywords(file_path, keywords, FILTER_COLUMNS)
+        # )
 
     all_final_df = pd.concat(all_matches_list, ignore_index=True)
     # 4.将结果进行保存
@@ -134,6 +179,29 @@ def search_or_keywords():
 
     logger.info(f"总耗时： {time.time() - start_time:.2f}秒")
     logger.info("---系统关闭---")
+
+
+def test():
+    config = init_config()
+    FILE_PATH = config.get("file_path")
+    FILE_COLUMNS = config.get("filter_columns")
+    KEYWORDS_PATH = config.get("keyword_path")
+
+    sources_path = load_folder(FILE_PATH)
+    keywords = get_keywords(KEYWORDS_PATH)
+
+    all_final_df = []
+
+    for file_path in sources_path:
+        for sheet_name, df in load_all_sheet(file_path).items():
+            result = search_add_keywords(df, keywords, FILE_COLUMNS)
+            all_final_df.append(result)
+    all_df = pd.concat(all_final_df, ignore_index=True)
+    save_excel(all_df)
+
+
+def main():
+    test()
 
 
 if __name__ == "__main__":
