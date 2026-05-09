@@ -9,7 +9,10 @@ wheels/
 # Virtual environments
 .venv
 
-output/
+output/*
+source/*
+log/*
 
-source/
-log/
+!log/.gitkeep
+!source/.gitkeep
+!output/.gitkeep
