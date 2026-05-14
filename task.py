@@ -95,12 +95,12 @@ def statistic_task():
     format_profiles = config.get("format_profiles")
     shared_formats = config.get("shared_formats", {})
     file_path_root = config.get("file_path", ".")
-
+    input_path = input("请输入地址：")
     if not format_profiles:
         logger.error("配置文件缺少'format_profiles'定义")
         return
 
-    source_paths = load_folder(file_path_root)
+    source_paths = load_folder(input_path)
 
     for file_path in source_paths:
         sheets = load_all_sheet(file_path)
