@@ -23,7 +23,9 @@ def load_folder(folder: str = r"./source") -> list:
     if not file_folder.exists():
         logger.error(f"路径不存在,请进行检查：{file_folder}")
         return []
-    logger.info(f"正在加载路径目录：{folder}")
+
+    if file_folder.is_file():
+        return [file_folder]
     exist_suffix = [".xlsx", ".xls"]
 
     excel_files_path = [
