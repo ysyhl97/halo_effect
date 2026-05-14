@@ -1,0 +1,46 @@
+{
+  "file_path": "C:\\Users\\Administrator\\Desktop\\新建文件夹",
+  "filter_columns": ["标题", "摘要"],
+  "keyword_path": "./config/keywords.txt",
+  "format_profiles": {
+    "profile_A": {
+      "name": "默认格式",
+      "column_mapping": {
+        "logical_date": "发布时间",
+        "logical_sentiment": "舆情调性",
+        "logical_channel": "媒体环节",
+        "logical_warning": "是否预警"
+      },
+      "calculations": [
+        { "key": "total_count", "type": "total_rows" },
+        {
+          "key": "date_range",
+          "type": "date_range",
+          "column_ref": "logical_date"
+        },
+        {
+          "key": "warning_count",
+          "type": "conditional_count",
+          "column_ref": "logical_warning",
+          "value": "已预警"
+        },
+        {
+          "key": "sentimen_summary",
+          "type": "value_counts",
+          "column_ref": "logical_sentiment"
+        },
+        {
+          "key": "channel_summary",
+          "type": "value_counts",
+          "column_ref": "logical_channel"
+        }
+      ],
+      "template": "{date_range}共监测到{total_count}条信息。其中{sentimen_summary}，已预警信息共{warning_count}条。媒体方面，{channel_summary}。"
+    }
+  },
+  "shared_formats": {
+    "date": "%Y年%m月%d日",
+    "item_unit": "条",
+    "item_separator": "，"
+  }
+}
